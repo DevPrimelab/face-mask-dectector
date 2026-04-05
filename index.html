@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mask Detector AI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: bold;
+      color: #00ff88;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .header p {
+      font-size: 12px;
+      color: #555;
+      margin-top: 6px;
+      letter-spacing: 2px;
+    }
+
+    .card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 1.5px dashed #333;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: #0d0d0d;
+    }
+
+    .drop-zone:hover { border-color: #00ff88; background: #0d1a12; }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-zone .icon {
+      font-size: 42px;
+      margin-bottom: 12px;
+    }
+
+    .drop-zone p {
+      font-size: 13px;
+      color: #555;
+      letter-spacing: 1px;
+    }
+
+    .drop-zone span {
+      color: #00ff88;
+      font-size: 12px;
+      display: block;
+      margin-top: 6px;
+    }
+
+    /* Preview */
+    #preview-wrap {
+      display: none;
+      margin-top: 18px;
+      text-align: center;
+    }
+
+    #preview-wrap img {
+      max-height: 200px;
+      border-radius: 10px;
+      border: 1px solid #222;
+    }
+
+    #file-name {
+      font-size: 11px;
+      color: #444;
+      margin-top: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* Button */
+    button[type="submit"] {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background: #00ff88;
+      color: #000;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+
+    button[type="submit"]:hover { background: #00cc6a; }
+
+    /* Result */
+    .result-box {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .result-mask {
+      background: #0d1a12;
+      border: 1px solid #00ff88;
+      color: #00ff88;
+    }
+
+    .result-nomask {
+      background: #1a0d0d;
+      border: 1px solid #ff4444;
+      color: #ff4444;
+    }
+
+    .result-label {
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      margin: 22px 0;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #333;
+      margin-top: 24px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>⬡ Mask Detector</h1>
+    <p>// AI-POWERED FACE MASK DETECTION SYSTEM</p>
+  </div>
+
+  <div class="card">
+    <form method="POST" enctype="multipart/form-data">
+
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" name="file" accept="image/*" id="file-input">
+        <div class="icon">📡</div>
+        <p>DRAG & DROP IMAGE HERE</p>
+        <span>or click to browse files</span>
+      </div>
+
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="preview">
+        <p id="file-name"></p>
+      </div>
+
+      <hr class="divider">
+
+      <button type="submit">▶ RUN DETECTION</button>
+    </form>
+
+    {% if result %}
+    <div class="result-box {% if 'nahi' in result %}result-nomask{% else %}result-mask{% endif %}">
+      <div class="result-label">// DETECTION RESULT</div>
+      {{ result }}
+    </div>
+    {% endif %}
+  </div>
+
+  <p class="footer">MASK_DETECTOR_v1.0 &nbsp;|&nbsp; CNN MODEL &nbsp;|&nbsp; TENSORFLOW</p>
+</div>
+
+<script>
+  const input = document.getElementById('file-input');
+  const previewWrap = document.getElementById('preview-wrap');
+  const previewImg = document.getElementById('preview-img');
+  const fileName = document.getElementById('file-name');
+
+  input.addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        fileName.textContent = '> ' + file.name;
+        previewWrap.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+
+</body>
+</html>
